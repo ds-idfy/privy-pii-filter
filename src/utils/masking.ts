@@ -23,68 +23,55 @@ export const ENTITY_LABEL_MAP: Record<string, string> = {
   URL:             "private_url",
 };
 
-// Build parts by searching for each entity's word in the original text
 export function buildParts(text: string, spans: EntitySpan[]): TextPart[] {
   if (!spans.length) return [{ type: "plain", text }];
 
-  // For each span, find its position in the text by searching for the word
   type Located = { start: number; end: number; span: EntitySpan; displayLabel: string };
   const located: Located[] = [];
   const used = new Set<number>();
 
   for (const span of spans) {
-    const word = span.word.trimStart(); // model sometimes prepends a space
-    const wordWithSpace = span.word; // try with leading space too
-    let idx = -1;
+    const candidates = [span.word, span.word.trimStart(), span.word.trim()];
+    let found = false;
 
-    // Try exact match first, then trimmed
-    for (const candidate of [wordWithSpace, word]) {
+    for (const candidate of candidates) {
+      if (!candidate) continue;
       let searchFrom = 0;
       while (searchFrom < text.length) {
-        const found = text.indexOf(candidate, searchFrom);
-        if (found === -1) break;
-        // Check this position isn't already used
-        if (!used.has(found)) {
-          idx = found;
+        const idx = text.indexOf(candidate, searchFrom);
+        if (idx === -1) break;
+        let overlap = false;
+        for (let i = idx; i < idx + candidate.length; i++) {
+          if (used.has(i)) { overlap = true; break; }
+        }
+        if (!overlap) {
+          const end = idx + candidate.length;
+          for (let i = idx; i < end; i++) used.add(i);
+          located.push({
+            start: idx,
+            end,
+            span,
+            displayLabel: ENTITY_LABEL_MAP[span.entity_group] ?? span.entity_group,
+          });
+          found = true;
           break;
         }
-        searchFrom = found + 1;
+        searchFrom = idx + 1;
       }
-      if (idx !== -1) break;
+      if (found) break;
     }
-
-    if (idx === -1) continue; // couldn't locate, skip
-
-    const actualWord = text.slice(idx, idx + (span.word.trimStart() === span.word ? span.word.length : span.word.trimStart().length));
-    const end = idx + actualWord.length;
-
-    // Mark all positions as used
-    for (let i = idx; i < end; i++) used.add(i);
-
-    located.push({
-      start: idx,
-      end,
-      span,
-      displayLabel: ENTITY_LABEL_MAP[span.entity_group] ?? span.entity_group,
-    });
   }
 
-  // Sort by position
   located.sort((a, b) => a.start - b.start);
 
-  // Build final parts
   const parts: TextPart[] = [];
   let cursor = 0;
   for (const loc of located) {
-    if (loc.start > cursor) {
-      parts.push({ type: "plain", text: text.slice(cursor, loc.start) });
-    }
+    if (loc.start > cursor) parts.push({ type: "plain", text: text.slice(cursor, loc.start) });
     parts.push({ type: "entity", span: loc.span, displayLabel: loc.displayLabel });
     cursor = loc.end;
   }
-  if (cursor < text.length) {
-    parts.push({ type: "plain", text: text.slice(cursor) });
-  }
+  if (cursor < text.length) parts.push({ type: "plain", text: text.slice(cursor) });
 
   return parts;
 }
