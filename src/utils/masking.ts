@@ -27,10 +27,14 @@ export const ENTITY_LABEL_MAP: Record<string, string> = {
   bank_account:    "private_bank_account",
   ifsc:            "private_ifsc",
   vehicle_reg:     "private_vehicle",
+  // Unknown model labels
+  secret:          "private_secret",
 };
 
 // ── Indian PII regex patterns ─────────────────────────────────────────────────
 const INDIAN_PATTERNS: Array<{ type: string; re: RegExp }> = [
+  // Email — catch all emails the model misses
+  { type: "private_email",   re: /\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b/g },
   // Aadhaar: 12 digits with optional spaces/dashes (xxxx xxxx xxxx or xxxx-xxxx-xxxx)
   { type: "aadhaar",         re: /\b\d{4}[\s\-]\d{4}[\s\-]\d{4}\b/g },
   // PAN: ABCDE1234F
@@ -47,8 +51,8 @@ const INDIAN_PATTERNS: Array<{ type: string; re: RegExp }> = [
   { type: "driving_licence", re: /\b[A-Z]{2}\d{2}[\s\-]?\d{4,11}\b/g },
   // GSTIN: 15-char format
   { type: "gstin",           re: /\b\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b/g },
-  // Bank account: 9-18 digits (only when preceded by keyword to avoid false positives)
-  { type: "bank_account",    re: /(?:account|acc|a\/c|acct)[^\d]{0,10}(\d{9,18})\b/gi },
+  // Bank account: 11-18 digits preceded by keyword
+  { type: "bank_account",    re: /(?:account|acc|a\/c|acct)\s*(?:no\.?|number|#)?\s*:?\s*(\d{11,18})\b/gi },
   // IFSC: 4 letters + 0 + 6 alphanumeric
   { type: "ifsc",            re: /\b[A-Z]{4}0[A-Z0-9]{6}\b/g },
   // Vehicle registration: state(2) + district(2) + series(1-2) + number(4)
