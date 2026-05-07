@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { usePiiWorker } from "./hooks/usePiiWorker";
-import type { EntitySpan } from "./hooks/usePiiWorker";
+import { usePiiWorker, EntitySpan } from "./hooks/usePiiWorker";
 import { buildParts, ENTITY_LABEL_MAP } from "./utils/masking";
 
 const C = {
@@ -19,18 +18,14 @@ const C = {
 const FONT = "'Plus Jakarta Sans', system-ui, sans-serif";
 
 const ENTITY_META: Record<string, { color: string; bg: string }> = {
-  EMAIL:       { color: C.info500,        bg: C.info100 },
-  PHONE:       { color: C.warning500,     bg: C.warning20 },
-  PERSON:      { color: C.lavender,       bg: "#F3EEF9" },
-  NAME:        { color: C.lavender,       bg: "#F3EEF9" },
-  LOC:         { color: C.success500,     bg: C.success100 },
-  LOCATION:    { color: C.success500,     bg: C.success100 },
-  ORG:         { color: C.primary500,     bg: C.primary50 },
-  DATE:        { color: "#7A4A00",        bg: C.warning100 },
-  CREDIT_CARD: { color: C.destructive500, bg: C.destructive100 },
-  SSN:         { color: C.destructive500, bg: C.destructive100 },
-  IP:          { color: C.info500,        bg: C.info100 },
-  URL:         { color: C.primary500,     bg: C.primary50 },
+  private_person:  { color: C.lavender,       bg: "#F3EEF9" },
+  private_email:   { color: C.info500,         bg: C.info100 },
+  private_phone:   { color: C.warning500,      bg: C.warning20 },
+  account_number:  { color: C.destructive500,  bg: C.destructive100 },
+  private_url:     { color: C.primary500,      bg: C.primary50 },
+  private_date:    { color: "#7A4A00",         bg: C.warning100 },
+  private_org:     { color: C.primary500,      bg: C.primary50 },
+  private_loc:     { color: C.success500,      bg: C.success100 },
 };
 
 const SAMPLE_TEXT = `Hello, my name is Dr. Sarah Johnson and I work at Acme Corp Inc.
@@ -39,16 +34,16 @@ My SSN is 432-18-9873 and my IP is 192.168.1.42.
 I was born on 04/12/1985 and my credit card is 4532 1234 5678 9010.
 Our office is in New York, ZIP 10001. Visit https://www.acme.com`;
 
-function EntityChip({ span }: { span: EntitySpan }) {
-  const meta = ENTITY_META[span.entity_group] ?? { color: C.primary500, bg: C.primary50 };
-  const label = ENTITY_LABEL_MAP[span.entity_group] ?? span.entity_group.toLowerCase();
+function EntityChip({ label, original, entityGroup }: { label: string; original: string; entityGroup: string }) {
+  const meta = ENTITY_META[entityGroup] ?? { color: C.primary500, bg: C.primary50 };
   return (
-    <span title={`Original: "${span.word}"`} style={{
+    <span title={`Original: "${original}"`} style={{
       display: "inline-flex", alignItems: "center", gap: 4,
       background: meta.bg, color: meta.color,
       fontFamily: FONT, fontSize: "0.8125rem", fontWeight: 600,
       padding: "1px 10px", borderRadius: 4,
       border: `1px solid ${meta.color}33`, cursor: "default",
+      verticalAlign: "middle",
     }}>
       <span style={{ fontSize: "0.6rem" }}>●</span>[{label}]
     </span>
@@ -222,11 +217,11 @@ export default function App() {
           }>
             {!input
               ? <div style={{ color: C.neutral100, fontSize: "0.875rem", fontStyle: "italic", minHeight: 80, display: "flex", alignItems: "center" }}>Masked output will appear here as you type…</div>
-              : <div style={{ fontFamily: FONT, fontSize: "0.875rem", lineHeight: 2, color: C.neutral300, minHeight: 80, animation: "fadeIn 0.2s ease" }}>
+              : <div style={{ fontFamily: FONT, fontSize: "0.875rem", lineHeight: 2.2, color: C.neutral300, minHeight: 80, animation: "fadeIn 0.2s ease", wordBreak: "break-word" }}>
                   {parts.map((p, i) =>
                     p.type === "plain"
                       ? <span key={i}>{p.text}</span>
-                      : <EntityChip key={i} span={p.span} />
+                      : <EntityChip key={i} label={p.displayLabel} original={p.span.word} entityGroup={p.span.entity_group} />
                   )}
                 </div>
             }
@@ -238,7 +233,7 @@ export default function App() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {Object.entries(entityCounts).map(([type, count]) => {
                   const meta = ENTITY_META[type] ?? { color: C.primary500, bg: C.primary50 };
-                  const label = ENTITY_LABEL_MAP[type] ?? type.toLowerCase();
+                  const label = ENTITY_LABEL_MAP[type] ?? type;
                   return (
                     <div key={type} style={{ display: "flex", alignItems: "center", gap: 6, background: meta.bg, borderRadius: 6, padding: "6px 12px", border: `1px solid ${meta.color}22` }}>
                       <span style={{ fontFamily: FONT, fontSize: "0.8125rem", fontWeight: 600, color: meta.color }}>[{label}]</span>
