@@ -36,6 +36,7 @@ self.addEventListener("message", async (e) => {
   if (type === "INFER") {
     try {
       const { result, elapsed } = await runInference(payload.text);
+      console.log("MODEL OUTPUT:", JSON.stringify(result));
       self.postMessage({ type: "INFER_OK", id, result, elapsed });
     } catch (err) {
       self.postMessage({ type: "INFER_ERR", id, error: String(err) });
