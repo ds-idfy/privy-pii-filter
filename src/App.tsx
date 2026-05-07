@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { usePiiWorker, EntitySpan } from "./hooks/usePiiWorker";
+import { usePiiWorker } from "./hooks/usePiiWorker";
+import type { EntitySpan } from "./hooks/usePiiWorker";
 import { buildParts, ENTITY_LABEL_MAP } from "./utils/masking";
 
 const C = {
